@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
-import { generateBirthdays, hslToHex, KEYWORDS, MONTH_COLORS, MOTIFS, SEASON_MOTIFS, seasonOf } from '../src/data/birthdayRules.ts';
+import { generateBirthdays, hslToHex, KEYWORDS, MONTH_COLORS, MOTIFS, motifPool, SEASON_MOTIFS, seasonOf } from '../src/data/birthdayRules.ts';
 import { allMonthDays } from '../src/data/validate.ts';
 import { renderBirthdaysYaml } from '../src/data/writeBirthdays.ts';
 import { dataPaths } from '../src/paths.ts';
@@ -42,10 +42,20 @@ describe('誕生日データの生成規則（docs/03 §1-1）', () => {
   it('モチーフはその季節のものだけ', () => {
     for (const e of entries) {
       const month = Number(e.date.slice(0, 2));
-      expect(SEASON_MOTIFS[seasonOf(month)] as readonly string[], e.date).toContain(e.motif);
+      expect(motifPool(seasonOf(month)), e.date).toContain(e.motif);
     }
     expect(entries.find((e) => e.date === '01-01')?.motif).not.toBe('桜の花びら');
     expect(entries.filter((e) => e.motif === 'ひまわり').every((e) => ['06', '07', '08'].includes(e.date.slice(0, 2)))).toBe(true);
+  });
+
+  it('季節らしいモチーフ（core）は共有のもの（sub）より多く出る', () => {
+    for (const season of ['winter', 'spring', 'summer', 'autumn'] as const) {
+      const inSeason = entries.filter((e) => seasonOf(Number(e.date.slice(0, 2))) === season);
+      const count = (m: string) => inSeason.filter((e) => e.motif === m).length;
+      const coreMin = Math.min(...SEASON_MOTIFS[season].core.map(count));
+      const subMax = Math.max(...SEASON_MOTIFS[season].sub.map(count));
+      expect(coreMin, season).toBeGreaterThan(subMax);
+    }
   });
 
   it('すべてのモチーフ・キーワードが使われる', () => {

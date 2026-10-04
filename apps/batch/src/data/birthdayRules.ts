@@ -85,27 +85,37 @@ export const DAY_PREFIXES = [
 ] as const;
 
 /**
- * 季節ごとのモチーフ（各16種）。実在の人物・建物・寺社・宗教のシンボル・キャラクターは使わない（docs/03 §1）。
- * 季節：冬 12〜2月、春 3〜5月、夏 6〜8月、秋 9〜11月。星・羽根・水晶などは複数の季節で使う。
+ * 季節ごとのモチーフ。実在の人物・建物・寺社・宗教のシンボル・キャラクターは使わない（docs/03 §1）。
+ * 季節：冬 12〜2月、春 3〜5月、夏 6〜8月、秋 9〜11月。
+ * core（季節らしいもの6種）は sub（ほかの季節とも共有するもの6種）の2倍の頻度で出る。
  */
 export const SEASON_MOTIFS = {
-  winter: [
-    '雪の結晶', 'オーロラ', '星くず', '白い羽根', '水晶', 'リボン', 'ランタンの灯り', '満月',
-    '三日月', '真珠', '流れ星', 'アンティークの鍵', '金色の砂時計', '紙飛行機', 'ガラスの小瓶', '小鳥',
-  ],
-  spring: [
-    '桜の花びら', 'たんぽぽの綿毛', '蝶', '小鳥', '四つ葉のクローバー', 'すずらん', '小さな花束', '花冠',
-    'しゃぼん玉', '虹', 'リボン', '紙飛行機', '白い羽根', '星くず', 'ガラスの小瓶', '気球',
-  ],
-  summer: [
-    '朝顔', 'ひまわり', '貝殻', '帆船', 'しずく', '虹', '流れ星', 'ガラスの小瓶',
-    'しゃぼん玉', '星くず', '真珠', '気球', '紙飛行機', '白い羽根', '三日月', '蝶',
-  ],
-  autumn: [
-    '満月', '三日月', '紅葉した葉', 'ランタンの灯り', '金色の砂時計', 'アンティークの鍵', '気球', '真珠',
-    '星くず', '流れ星', '白い羽根', '水晶', 'リボン', '小鳥', '小さな花束', 'ガラスの小瓶',
-  ],
-} as const satisfies Record<string, readonly string[]>;
+  winter: {
+    core: ['雪の結晶', 'オーロラ', 'ランタンの灯り', '水晶', '満月', '白い羽根'],
+    sub: ['星くず', 'リボン', '真珠', 'アンティークの鍵', '金色の砂時計', '小鳥'],
+  },
+  spring: {
+    core: ['桜の花びら', 'たんぽぽの綿毛', '四つ葉のクローバー', 'すずらん', '花冠', '蝶'],
+    sub: ['小さな花束', 'しゃぼん玉', '虹', '小鳥', '紙飛行機', '気球'],
+  },
+  summer: {
+    core: ['朝顔', 'ひまわり', '貝殻', '帆船', 'しずく', '流れ星'],
+    sub: ['虹', 'しゃぼん玉', 'ガラスの小瓶', '星くず', '三日月', '真珠'],
+  },
+  autumn: {
+    core: ['紅葉した葉', '満月', '三日月', 'ランタンの灯り', '金色の砂時計', '小さな花束'],
+    sub: ['気球', 'アンティークの鍵', 'リボン', '水晶', '星くず', 'ガラスの小瓶'],
+  },
+} as const satisfies Record<string, { core: readonly string[]; sub: readonly string[] }>;
+
+/**
+ * 割り当てに使う並び（18件）：core → sub → core。
+ * 同じ core は12離れて並ぶため、7ずつ進める割り当てで隣り合う日に同じモチーフが来ない（7と18は互いに素）。
+ */
+export function motifPool(season: Season): readonly string[] {
+  const { core, sub } = SEASON_MOTIFS[season];
+  return [...core, ...sub, ...core];
+}
 
 export type Season = keyof typeof SEASON_MOTIFS;
 
@@ -117,7 +127,7 @@ export function seasonOf(month: number): Season {
 }
 
 /** 使うモチーフの一覧（重複なし） */
-export const MOTIFS: readonly string[] = [...new Set(Object.values(SEASON_MOTIFS).flat())];
+export const MOTIFS: readonly string[] = [...new Set(Object.values(SEASON_MOTIFS).flatMap((x) => [...x.core, ...x.sub]))];
 
 /** キーワード（2〜6文字の前向きな語。効果を断定する語は使わない。docs/08 §1） */
 export const KEYWORDS = [
@@ -157,8 +167,7 @@ function seasonDayIndex(month: number, day: number): number {
 }
 
 function motifFor(month: number, day: number): string {
-  const pool = SEASON_MOTIFS[seasonOf(month)];
-  // 7 は16と互いに素なので、季節の中では隣り合う日で同じモチーフが続かない
+  const pool = motifPool(seasonOf(month));
   return pool[(seasonDayIndex(month, day) * 7) % pool.length] as string;
 }
 
@@ -191,8 +200,8 @@ export function generateBirthdays(): BirthdayEntry[] {
       const prev = out.at(-1);
       // 季節の変わり目で前日と同じモチーフになったら、その季節の次のモチーフにずらす
       if (prev && prev.motif === entry.motif) {
-        const pool = SEASON_MOTIFS[seasonOf(m)];
-        entry.motif = pool[(pool.indexOf(entry.motif as never) + 1) % pool.length] as string;
+        const pool = motifPool(seasonOf(m));
+        entry.motif = pool[(pool.indexOf(entry.motif) + 1) % pool.length] as string;
       }
       out.push(entry);
     }
@@ -208,8 +217,8 @@ export const BIRTHDAYS_HEADER = `# 誕生日別の題材（366日、2/29 を含�
 # - 守護カラーとモチーフは、このプロジェクト独自の設定。伝統・学説・宗教的権威を名乗らない。
 # - 色：月ごとに基調色を3つ決め（月をまたいで重複しない）、日ごとに「前置き（31種）＋基調色」で色名を作る。
 #   そのため366日の色名はすべて異なる。color_hex は基調色の HSL を日ごとに少し揺らした値。
-# - モチーフ：季節（冬12〜2月・春3〜5月・夏6〜8月・秋9〜11月）ごとに16種を用意し、
-#   季節の始まりからの日数 × 7 で順に割り当てる（隣り合う日で同じものが続かない）。
+# - モチーフ：季節（冬12〜2月・春3〜5月・夏6〜8月・秋9〜11月）ごとに、季節らしいもの6種と共有のもの6種を用意し、
+#   季節らしいものが2倍出るように、季節の始まりからの日数 × 7 で順に割り当てる（隣り合う日で同じものが続かない）。
 #   実在の人物・建物・寺社・宗教のシンボル・キャラクターは使わない。
 # - keyword：2〜6文字の前向きな語32種を、通し番号 × 11 で割り当てる。効果を断定する語は使わない。
 # - 人がレビューし、問題なければ data/birthdays.reviewed を置く（置くまで本番の画像生成は動かない）。
