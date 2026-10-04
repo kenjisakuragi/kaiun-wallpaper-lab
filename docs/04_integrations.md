@@ -7,7 +7,10 @@
 - モデル・品質は環境変数で切り替え（`OPENAI_IMAGE_MODEL`、`OPENAI_IMAGE_QUALITY`、`OPENAI_TEXT_MODEL`）。
 - 画像料金メモ（二次情報、縦長 1024×1536、1枚あたり）：GPT Image 2 は low $0.005 / medium $0.041 / high $0.165。366枚で medium 約$15、high 約$60。
 - 実装要件：冪等（`images` の `(kind, key, version)`）、並列数は設定値（初期3）、429/5xx は指数バックオフで最大2回、推定コストを記録し `IMAGE_BUDGET_USD` を超える場合は開始前に停止。
-- 確認記録：（実装時に追記）
+- 確認記録：
+  - 2026-10-04（M3）`POST https://api.openai.com/v1/images/generations`。size は `1024x1536` 等（カスタムは16の倍数・縦横比1:3〜3:1）、quality は low / medium / high / xhigh / max / auto、output_format は png（既定）/ jpeg / webp、応答は `data[].b64_json`。https://developers.openai.com/api/docs/guides/image-generation
+  - 2026-10-04（M3）料金：gpt-image-2 は出力 $30 / 100万トークン、gpt-image-1-mini は出力 $8 / 100万トークン。1枚単価は公式表になく、`packages/clients/openai` の `ESTIMATED_COST_USD` は推計値。https://developers.openai.com/api/docs/pricing
+  - 実装：再試行は `batch:generate-images` 側でまとめて最大2回（クライアント内の再試行は0回）。
 
 ### 1-1. codex 経由の画像生成（2026-10-04 決定、主経路）
 - 仕組み：Claude Code から `codex exec` を呼び、ChatGPT ログインの codex に画像を1枚ずつ生成させて PNG を保存する（ユーザーのスキル `codex-imagegen` と同じ方式）。1枚あたり約2.5〜3.5分、1枚ずつ頼む、PNG の有無で再開、1枚15分で打ち切り。
@@ -21,10 +24,13 @@
   - 2026-10-04 OpenAI 利用規約（https://openai.com/policies/row-terms-of-use/ ）は 403 で本文を確認できず（`docs/09` #25）。
 
 ## 2. Cloudflare R2 / D1 / Workers
-- R2：`images/{random_prefix}/{kind}/{key}.jpg`、`videos/{random_prefix}/{date}_{post_id}.mp4`。Threads・Instagram・LINE が取得できる公開 URL が必要。
+- R2：`images/{random_prefix}/{kind}/{key}_v{version}.jpg`（プレビューは `_v{version}_preview.jpg`。作り直しで URL が変わるよう版を入れる）、`videos/{random_prefix}/{date}_{post_id}.mp4`。Threads・Instagram・LINE が取得できる公開 URL が必要。
 - D1：スキーマは `docs/05`。マイグレーションは `packages/db/migrations/`。
 - Workers（`apps/edge`）：LINE Webhook、Threads Webhook（使える場合）、`/go/{platform}` リダイレクト。シークレットは `wrangler secret`。
 - 確認記録：
+  - 2026-10-04（M3）R2 の S3 互換 API：エンドポイント `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`、region は `auto`、PutObject / HeadObject 対応。認証は R2 の API トークン画面で発行するアクセスキー（`R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`）。https://developers.cloudflare.com/r2/api/s3/api/
+  - 2026-10-04（M3）R2 の公開：`r2.dev` サブドメインは速度制限があり開発用、本番は独自ドメインを推奨（`docs/09` #30）。https://developers.cloudflare.com/r2/buckets/public-buckets/
+  - 2026-10-04（M3）D1 の REST API：`POST /client/v4/accounts/{account_id}/d1/database/{database_id}/query`、本文 `{ sql, params }`、`Authorization: Bearer <API トークン>`、応答は `result[].results` と `meta.changes`。バッチは `DB_MODE=d1` でこれを使う。https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/query/
   - 2026-10-04（M1）D1 マイグレーション：番号付きの `.sql` を順に適用し、適用済みは `d1_migrations` テーブルで管理。置き場所は D1 バインディングの `migrations_dir` で指定（本リポジトリは `packages/db/migrations`）。https://developers.cloudflare.com/d1/reference/migrations/
   - 2026-10-04（M1）`wrangler d1 migrations apply <DB> --local [--persist-to <dir>]` で適用。CI・非対話環境では確認プロンプトを自動でスキップ。`wrangler d1 execute` は `--command` / `--file` / `--json` / `--yes`。https://developers.cloudflare.com/workers/wrangler/commands/d1/
   - 2026-10-04（M1）使用バージョン：wrangler 4.147.0。テストのローカル D1 は wrangler の `getPlatformProxy`（`persist: false`）で起動。

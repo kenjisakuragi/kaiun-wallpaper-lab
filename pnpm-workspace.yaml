@@ -1,5 +1,6 @@
 packages:
   - "packages/*"
+  - "packages/clients/*"
   - "apps/*"
 allowBuilds:
   esbuild: true

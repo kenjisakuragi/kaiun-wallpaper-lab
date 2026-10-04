@@ -1,0 +1,37 @@
+# アファメーション版の画像の題材（12枚で開始。docs/03 §1-4、prompts/image_affirmation.md）
+- key: a001
+  scene_en: a calm sea at sunrise with a soft glowing horizon
+  color_hex: "#F6D7C3"
+- key: a002
+  scene_en: floating soft light orbs rising gently upward
+  color_hex: "#E3D9F5"
+- key: a003
+  scene_en: an open window with sheer curtains and morning light
+  color_hex: "#F4EEDC"
+- key: a004
+  scene_en: a gentle path of light through a pastel meadow
+  color_hex: "#D9EED8"
+- key: a005
+  scene_en: a single glowing star above soft pink clouds
+  color_hex: "#F7D6E0"
+- key: a006
+  scene_en: a small paper boat floating on calm shimmering water
+  color_hex: "#D4E8F2"
+- key: a007
+  scene_en: a soft rainbow arching over quiet hills
+  color_hex: "#E9F1E4"
+- key: a008
+  scene_en: a glass sphere holding tiny sparkling lights
+  color_hex: "#E6E1F3"
+- key: a009
+  scene_en: dandelion seeds drifting through warm golden light
+  color_hex: "#F5E9C8"
+- key: a010
+  scene_en: a gently opening flower bud with soft glow
+  color_hex: "#F3DCE6"
+- key: a011
+  scene_en: a starry sky reflected in a still lake
+  color_hex: "#CBD6EE"
+- key: a012
+  scene_en: soft morning mist with rays of light through trees
+  color_hex: "#E1EEE6"

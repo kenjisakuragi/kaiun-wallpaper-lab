@@ -10,7 +10,7 @@ describe('設定読み込み（zod 検証、不足キーで失敗）', () => {
     const env = { OPENAI_API_KEY: SECRET };
     let err: unknown;
     try {
-      loadConfig(['openai'], env);
+      loadConfig(['openaiImage', 'openaiText'], env);
     } catch (e) {
       err = e;
     }
@@ -60,6 +60,24 @@ describe('設定読み込み（zod 検証、不足キーで失敗）', () => {
   it('数値は文字列から変換される', () => {
     const cfg = loadConfig(['ops'], { TEXT_SIMILARITY_THRESHOLD: '0.75' });
     expect(cfg.ops.TEXT_SIMILARITY_THRESHOLD).toBe(0.75);
+  });
+
+  it('画像生成は codex が初期値、DB は local が初期値（外部に書かない安全側）', () => {
+    const cfg = loadConfig(['imageGen', 'db'], {});
+    expect(cfg.imageGen.IMAGE_GENERATOR).toBe('codex');
+    expect(cfg.db).toEqual({ DB_MODE: 'local', LOCAL_DB_PATH: 'out/local.db' });
+  });
+
+  it('R2 の公開パスのランダム接頭辞は8文字以上', () => {
+    const base = {
+      CLOUDFLARE_ACCOUNT_ID: 'a',
+      R2_ACCESS_KEY_ID: 'k',
+      R2_SECRET_ACCESS_KEY: 's',
+      R2_BUCKET: 'b',
+      R2_PUBLIC_BASE_URL: 'https://img.example.com',
+    };
+    expect(() => loadConfig(['r2'], { ...base, R2_RANDOM_PREFIX: 'abc' })).toThrow(/R2_RANDOM_PREFIX/);
+    expect(loadConfig(['r2'], { ...base, R2_RANDOM_PREFIX: 'k3x9q2m7' }).r2.R2_RANDOM_PREFIX).toBe('k3x9q2m7');
   });
 
   it('要求したセクションだけ検証する', () => {

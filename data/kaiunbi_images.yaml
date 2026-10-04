@@ -1,0 +1,14 @@
+# 開運日版の画像の題材（種類ごとに1枚。docs/03 §1-3、prompts/image_kaiunbi.md）
+# 対象は docs/09 #15 の4種。必要になったら key に -2 などを付けて追加する。
+- key: tenshabi
+  motif_en: a soft sunrise sky with gentle light rays
+  base_color_en: dawn orange and soft pink
+- key: ichiryumanbaibi
+  motif_en: a single golden rice ear glowing softly
+  base_color_en: warm gold and fresh light green
+- key: shingetsu
+  motif_en: a deep blue night sky with a thin new moon and tiny stars
+  base_color_en: deep indigo and soft navy
+- key: mangetsu
+  motif_en: a bright full moon over soft clouds
+  base_color_en: moonlight white and pale blue

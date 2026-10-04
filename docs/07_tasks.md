@@ -31,6 +31,7 @@
 - `batch:plan --from --days`：`docs/03` §6 に沿って `posts` に予定を登録（題材は birthday / kaiunbi / affirmation、比率は `docs/09` #15）。
 - 文面生成：Threads 本文（`prompts/threads_post.md`）と Instagram キャプション（`prompts/caption_instagram.md`）。NG ワード検査（`NG_WORD_MODE`）→ 類似度検査 → 不合格なら最大3回再生成 → だめなら `skipped`。
 - `batch:render-videos`：`docs/03` §3 の仕様で ffmpeg 合成（Instagram 用）。
+- Threads 投稿画像の文字入れ版（`docs/09` #29）：待ち受け画像に、商用利用可のフォントで日付と見出しを重ねた版を作れるようにする（文字なし版との比較用）。
 - 評価ループの記録（`docs/06` §6）：マイグレーション0002で `posts` に `prompt_version`・`hook_type`・`style_version`・`post_time`・`ng_hits` を追加し、計画・文面生成時に記録する。
 **完了条件**：7日分の計画・文面・動画が作れる。評価ループ用の列が記録されることのテスト。動画が 1080×1920・30fps・12〜15秒であることを ffprobe で検証。`NG_WORD_MODE=block` のとき NG ワードを含む文面が予定に入らず、`warn` のとき記録されたうえで入ることのテスト。Threads 本文が500文字以内であることのテスト。
 

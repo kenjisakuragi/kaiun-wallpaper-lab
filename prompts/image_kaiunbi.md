@@ -18,6 +18,7 @@
 動物（虎・蛇など）や神仏・神社仏閣の意匠は描かない。
 
 ## テンプレート
+（`{motif_en}` と `{base_color_en}` は `data/kaiunbi_images.yaml` から入れる）
 ```
 A vertical smartphone lock-screen wallpaper.
 {motif_en}, soft gradient background in {base_color_en}.

@@ -1,0 +1,11 @@
+{
+  "name": "@kaiun/client-d1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  }
+}

@@ -7,6 +7,11 @@
 - 文字・数字・ロゴ・人物・実在の建物や寺社・特定宗教のシンボルは描かない。
 - 統一感のため、画風の指定語（例：やわらかい水彩、透明感、パステル）はこのファイルで固定し、日ごとに変えるのは色とモチーフだけ。
 
+## STYLE_WORDS（全画像共通。2026-10-04 仮決め：サンプル3枚で確認済み。試作20枚で確定する）
+```
+soft watercolor, translucent and airy, pastel tones, gentle dreamy light, delicate and calm
+```
+
 ## テンプレート
 ```
 A vertical smartphone lock-screen wallpaper.
@@ -17,4 +22,4 @@ Style: {STYLE_WORDS}.
 No text, no numbers, no letters, no logos, no people, no real buildings, no religious symbols.
 ```
 - `{motif_en}` は `birthdays.yaml` の motif を英訳したもの（変換表を `data/motif_en.yaml` に持つ。冠詞・複数形込みで書くため、テンプレート側では「A single」を付けない）。
-- `{STYLE_WORDS}` はスタイル確定後にここへ記入する。
+- `{STYLE_WORDS}` は上の「STYLE_WORDS」の値（バッチがこのファイルから読む）。

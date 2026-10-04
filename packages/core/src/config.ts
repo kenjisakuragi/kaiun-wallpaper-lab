@@ -10,21 +10,41 @@ const int = (def: number) => z.coerce.number().int().min(0).default(def);
 const hhmm = z.string().regex(/^\d{2}:\d{2}$/);
 
 export const configSections = {
-  openai: z.object({
+  /** 画像の生成方法（docs/04 §1-1）。codex はローカルPC専用。 */
+  imageGen: z.object({
+    IMAGE_GENERATOR: z.enum(['codex', 'openai']).default('codex'),
+    CODEX_BIN: z.string().trim().optional(),
+  }),
+  openaiImage: z.object({
     OPENAI_API_KEY: required,
     OPENAI_IMAGE_MODEL: required,
     OPENAI_IMAGE_QUALITY: z.enum(['low', 'medium', 'high']).default('medium'),
-    OPENAI_TEXT_MODEL: required,
     IMAGE_BUDGET_USD: z.coerce.number().positive().default(80),
     IMAGE_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(3),
   }),
-  cloudflare: z.object({
+  openaiText: z.object({
+    OPENAI_API_KEY: required,
+    OPENAI_TEXT_MODEL: required,
+  }),
+  r2: z.object({
     CLOUDFLARE_ACCOUNT_ID: required,
-    CLOUDFLARE_API_TOKEN: required,
+    R2_ACCESS_KEY_ID: required,
+    R2_SECRET_ACCESS_KEY: required,
     R2_BUCKET: required,
     R2_PUBLIC_BASE_URL: url,
-    R2_RANDOM_PREFIX: required,
+    R2_RANDOM_PREFIX: z.string().regex(/^[A-Za-z0-9_-]{8,}$/, 'random prefix (8+ chars of A-Za-z0-9_-)'),
+  }),
+  /** バッチが使う DB。local は node:sqlite（開発・テスト）、d1 は Cloudflare REST API（本番） */
+  db: z.object({
+    DB_MODE: z.enum(['local', 'd1']).default('local'),
+    LOCAL_DB_PATH: z.string().default('out/local.db'),
+  }),
+  d1: z.object({
+    CLOUDFLARE_ACCOUNT_ID: required,
+    CLOUDFLARE_API_TOKEN: required,
     D1_DATABASE_ID: required,
+  }),
+  edge: z.object({
     EDGE_HOST: required,
   }),
   threads: z.object({
