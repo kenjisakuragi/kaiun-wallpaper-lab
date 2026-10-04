@@ -8,8 +8,8 @@
 - [ ] Cloudflare（Workers・D1・R2）を用意し、シークレットを設定した
 - [ ] Threads・Instagram のプロフィールリンクを `/go/threads`・`/go/instagram` にした
 - [ ] `data/birthdays.yaml` をレビューし `data/birthdays.reviewed` を置いた
-- [ ] `data/calendar/2026.csv`・`2027.csv` に開運日を出典付きで入力した
-- [ ] 試作10〜20枚で画風を確定し、初回386枚（誕生日366・開運日7・アファメーション12・共通1）をローカルPCで codex 生成し、`data/approvals.csv` で承認した
+- [x] `data/calendar/2026.csv`・`2027.csv` に開運日を出典付きで入力した（2026-10-04、Claude Code が2出典照合で入力）
+- [ ] 試作10〜20枚で画風を確定し、初回383枚（誕生日366・開運日4・アファメーション12・共通1）をローカルPCで codex 生成し、`data/approvals.csv` で承認した
 - [ ] プライバシーポリシーを公開し、LINE あいさつ文とプロフィールにリンクした
 - [ ] 7日分の投稿予定（`batch:plan`）・文面・動画を作り、目視確認した
 - [ ] `THREADS_AUTO_REPLY_MODE=approve` で開始する設定になっている

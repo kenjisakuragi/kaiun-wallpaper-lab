@@ -11,3 +11,8 @@
 date,type,source_url,checked_by
 2026-10-10,ichiryumanbaibi,https://example.com/koyomi/2026-10,KY
 ```
+
+## 入力記録
+- 2026-10-04：2026-10〜2027-12 の天赦日・一粒万倍日・新月・満月を Claude Code が入力（`checked_by = CC`、委任による。`docs/09` #15 で対象はこの4種）。
+  - 新月・満月：国立天文台 暦要項 朔弦望（JST の日付）。https://eco.mtk.nao.ac.jp/koyomi/yoko/2026/rekiyou263.html 、https://eco.mtk.nao.ac.jp/koyomi/yoko/2027/rekiyou273.html
+  - 天赦日・一粒万倍日：arachne（source_url に記載）と 便利ジャパン（https://www.benri.jp/calc/manbai?y=2026 、`?y=2027`）の2サイトを照合し、一致した日だけを入れた（期間内の食い違いは0件）。

@@ -23,7 +23,7 @@
 ## M3 画像生成と承認
 - `packages/clients/openai`、`packages/clients/codex`（`codex exec` を呼ぶ画像生成。テストではモック）、`packages/clients/r2`。画像生成は共通のインターフェースにし、`IMAGE_GENERATOR=codex|openai` で切り替える（`docs/04` §1-1）。
 - `batch:generate-images`：kind/範囲指定、`--dry-run`、予算上限（openai 経路）、冪等、並列（openai 経路。codex は1枚ずつ）、リトライ、コスト記録、R2 アップロード、配布用とプレビュー用の2サイズ（生成サイズのばらつきを縮小・切り抜きで吸収）。
-- 初回の枚数は `docs/03` §1-5（386枚）。量産前に10〜20枚を試作する。
+- 初回の枚数は `docs/03` §1-5（383枚）。量産前に10〜20枚を試作する。
 - 承認：`out/review/index.html`（一覧）を出力 → 人が `data/approvals.csv` に approved/rejected → `batch:apply-approvals`。
 **完了条件**：`--dry-run` で枚数と推定コスト（openai）または推定時間（codex）を表示。3枚の実生成（live テスト、codex はローカルで実行）で R2 公開URLから取得できる。2回実行しても再生成されない。生成サイズが違う画像でも 1080×1920 とプレビュー用が作られるテスト。
 
