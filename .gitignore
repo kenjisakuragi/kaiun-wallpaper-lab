@@ -6,3 +6,6 @@ coverage/
 !.env.example
 .wrangler/
 *.log
+
+# JV の PDCA 記録（取引先・判断・数値を含むため公開リポジトリに載せない）
+docs/jv-*.md
