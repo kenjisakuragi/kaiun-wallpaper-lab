@@ -26,17 +26,26 @@ export const configSections = {
     OPENAI_API_KEY: required,
     OPENAI_TEXT_MODEL: required,
   }),
+  /** R2 の置き場所と公開URL（どの経路でも必要） */
   r2: z.object({
-    CLOUDFLARE_ACCOUNT_ID: required,
-    R2_ACCESS_KEY_ID: required,
-    R2_SECRET_ACCESS_KEY: required,
     R2_BUCKET: required,
     R2_PUBLIC_BASE_URL: url,
     R2_RANDOM_PREFIX: z.string().regex(/^[A-Za-z0-9_-]{8,}$/, 'random prefix (8+ chars of A-Za-z0-9_-)'),
+    /** wrangler：手元で wrangler login の認証を使う（キー不要）／s3：S3 互換 API のキーを使う（CI 用） */
+    STORAGE_MODE: z.enum(['wrangler', 's3']).default('wrangler'),
   }),
-  /** バッチが使う DB。local は node:sqlite（開発・テスト）、d1 は Cloudflare REST API（本番） */
+  /** STORAGE_MODE=s3 のときだけ必要 */
+  r2S3: z.object({
+    CLOUDFLARE_ACCOUNT_ID: required,
+    R2_ACCESS_KEY_ID: required,
+    R2_SECRET_ACCESS_KEY: required,
+  }),
+  /**
+   * バッチが使う DB。local は node:sqlite（開発・テスト）、wrangler は手元で wrangler login の認証を使う本番 D1、
+   * d1 は Cloudflare REST API（API トークン、CI 用）
+   */
   db: z.object({
-    DB_MODE: z.enum(['local', 'd1']).default('local'),
+    DB_MODE: z.enum(['local', 'wrangler', 'd1']).default('local'),
     LOCAL_DB_PATH: z.string().default('out/local.db'),
   }),
   d1: z.object({

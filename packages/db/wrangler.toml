@@ -1,11 +1,13 @@
-# ローカル D1 にマイグレーションを当てるための設定（`pnpm db:migrate:local`）。
-# database_id はローカル用の仮の値。本番の ID は D1_DATABASE_ID（環境変数）で、M7 の apps/edge で設定する。
+# D1 のマイグレーション用設定。
+# - ローカル：pnpm db:migrate:local（--local）
+# - 本番：pnpm db:migrate:remote（--remote、wrangler login 済みであること）
+# database_id は本番の kaiun-db（2026-10-04 作成、APAC）。ID だけでは操作できない（Cloudflare の認証が必要）。
 # 確認：https://developers.cloudflare.com/d1/reference/migrations/ （2026-10-04）
 name = "kaiun-db"
 compatibility_date = "2026-10-01"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "kaiun"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_name = "kaiun-db"
+database_id = "182b56b4-927d-4c9f-9794-54ec66df6731"
 migrations_dir = "migrations"

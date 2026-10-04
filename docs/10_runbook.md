@@ -5,7 +5,7 @@
 - [ ] Threads アカウントを作成（Instagram と連携）し、プロフィールに「誕生日リプへのお返事は自動で送っています」「画像はAIで作成」を明記した
 - [ ] Meta 開発者アプリで Threads API と Instagram Graph API を設定し、自分をテスターに登録、長期トークンを取得して設定した
 - [ ] LINE 公式アカウントと Messaging API チャネルを作成し、Webhook URL を設定、管理画面の自動応答を OFF にした
-- [ ] Cloudflare（Workers・D1・R2）を用意し、シークレットを設定した
+- [ ] Cloudflare（Workers・D1・R2）を用意し、シークレットを設定した（2026-10-04：D1 `kaiun-db`・R2 `kaiun-wallpaper-images` 作成済み。Workers のシークレットと CI 用のキーは M5〜M7 で設定）
 - [ ] Threads・Instagram のプロフィールリンクを `/go/threads`・`/go/instagram` にした
 - [ ] `data/birthdays.yaml` をレビューし `data/birthdays.reviewed` を置いた
 - [x] `data/calendar/2026.csv`・`2027.csv` に開運日を出典付きで入力した（2026-10-04、Claude Code が2出典照合で入力）

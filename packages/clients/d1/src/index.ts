@@ -93,3 +93,64 @@ export function createLocalDb(path: string, migrations: string[] = []): SqlDb & 
     },
   };
 }
+
+/** wrangler CLI を実行する関数（args を渡し、標準出力を返す）。runtime が本物を、テストがモックを渡す */
+export type WranglerRunner = (args: string[]) => Promise<string>;
+
+/** SQLite のリテラルに変換（wrangler d1 execute はバインド変数を受け付けないため） */
+export function toSqlLiteral(v: SqlValue): string {
+  if (v === null) return 'NULL';
+  if (typeof v === 'number') {
+    if (!Number.isFinite(v)) throw new D1Error(`non-finite number: ${v}`);
+    return String(v);
+  }
+  return `'${v.replace(/'/g, "''")}'`;
+}
+
+/** `?` を順にリテラルへ置き換える（文字列リテラル内の ? は置き換えない） */
+export function inlineParams(sql: string, params: SqlValue[] = []): string {
+  let i = 0;
+  let out = '';
+  let inQuote = false;
+  for (const ch of sql) {
+    if (ch === "'") inQuote = !inQuote;
+    if (ch === '?' && !inQuote) {
+      if (i >= params.length) throw new D1Error('not enough params for placeholders');
+      out += toSqlLiteral(params[i++] as SqlValue);
+    } else {
+      out += ch;
+    }
+  }
+  if (i !== params.length) throw new D1Error('too many params for placeholders');
+  return out;
+}
+
+const WranglerD1Schema = z.array(
+  z.object({
+    success: z.boolean(),
+    results: z.array(z.record(z.string(), z.unknown())).default([]),
+    meta: z.object({ changes: z.number().optional() }).passthrough().optional(),
+  }),
+);
+
+/**
+ * 手元実行用：wrangler login の認証で本番 D1 を操作する（API トークン不要）。
+ * binding は wrangler.toml の [[d1_databases]] の binding 名。
+ */
+export function createWranglerD1Db(run: WranglerRunner, binding = 'DB'): SqlDb {
+  async function query(sql: string, params?: SqlValue[]) {
+    const stdout = await run(['d1', 'execute', binding, '--remote', '--json', '--command', inlineParams(sql, params)]);
+    const start = stdout.indexOf('[');
+    const parsed = WranglerD1Schema.safeParse(JSON.parse(start >= 0 ? stdout.slice(start) : stdout));
+    if (!parsed.success || !parsed.data[0]?.success) throw new D1Error('wrangler d1 execute failed');
+    return { rows: parsed.data[0].results, changes: parsed.data[0].meta?.changes ?? 0 };
+  }
+  return {
+    async all<T extends Row = Row>(sql: string, params?: SqlValue[]) {
+      return (await query(sql, params)).rows as T[];
+    },
+    async run(sql, params) {
+      return { changes: (await query(sql, params)).changes };
+    },
+  };
+}

@@ -32,3 +32,39 @@ describe('R2 ストレージ（S3 クライアントはモック）', () => {
     expect(m.publicUrl('a/b.jpg')).toBe('https://m/a/b.jpg');
   });
 });
+
+describe('wrangler 経由の R2（手元実行用、wrangler はモック）', async () => {
+  const { createWranglerR2Storage } = await import('../src/index.ts');
+
+  it('一時ファイルに書いて r2 object put --remote を呼び、後片付けする', async () => {
+    const calls: string[][] = [];
+    let cleaned = false;
+    const s = createWranglerR2Storage({
+      run: async (args) => {
+        calls.push(args);
+        return '';
+      },
+      bucket: 'kaiun-wallpaper-images',
+      publicBaseUrl: 'https://pub-x.r2.dev',
+      writeTemp: async () => ({ path: '/tmp/obj', cleanup: () => (cleaned = true) }),
+    });
+    await s.put('images/p/kaiunbi/tenshabi_v1.jpg', new Uint8Array([1]), 'image/jpeg');
+    expect(calls[0]?.slice(0, 6)).toEqual(['r2', 'object', 'put', 'kaiun-wallpaper-images/images/p/kaiunbi/tenshabi_v1.jpg', '--file', '/tmp/obj']);
+    expect(calls[0]).toContain('--remote');
+    expect(calls[0]).toContain('image/jpeg');
+    expect(cleaned).toBe(true);
+    expect(s.publicUrl('images/a.jpg')).toBe('https://pub-x.r2.dev/images/a.jpg');
+  });
+
+  it('アップロードが失敗しても一時ファイルは消す', async () => {
+    let cleaned = false;
+    const s = createWranglerR2Storage({
+      run: async () => Promise.reject(new Error('upload failed')),
+      bucket: 'b',
+      publicBaseUrl: 'https://x',
+      writeTemp: async () => ({ path: 'p', cleanup: () => (cleaned = true) }),
+    });
+    await expect(s.put('k', new Uint8Array(), 'image/jpeg')).rejects.toThrow('upload failed');
+    expect(cleaned).toBe(true);
+  });
+});

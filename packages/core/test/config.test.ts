@@ -70,14 +70,13 @@ describe('設定読み込み（zod 検証、不足キーで失敗）', () => {
 
   it('R2 の公開パスのランダム接頭辞は8文字以上', () => {
     const base = {
-      CLOUDFLARE_ACCOUNT_ID: 'a',
-      R2_ACCESS_KEY_ID: 'k',
-      R2_SECRET_ACCESS_KEY: 's',
       R2_BUCKET: 'b',
       R2_PUBLIC_BASE_URL: 'https://img.example.com',
     };
     expect(() => loadConfig(['r2'], { ...base, R2_RANDOM_PREFIX: 'abc' })).toThrow(/R2_RANDOM_PREFIX/);
-    expect(loadConfig(['r2'], { ...base, R2_RANDOM_PREFIX: 'k3x9q2m7' }).r2.R2_RANDOM_PREFIX).toBe('k3x9q2m7');
+    const cfg = loadConfig(['r2'], { ...base, R2_RANDOM_PREFIX: 'k3x9q2m7' });
+    expect(cfg.r2.R2_RANDOM_PREFIX).toBe('k3x9q2m7');
+    expect(cfg.r2.STORAGE_MODE).toBe('wrangler');
   });
 
   it('要求したセクションだけ検証する', () => {

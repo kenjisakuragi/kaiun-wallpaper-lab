@@ -39,3 +39,33 @@ describe('ローカル DB（node:sqlite）', () => {
     db.close();
   });
 });
+
+describe('wrangler 経由の D1（手元実行用、wrangler はモック）', async () => {
+  const { createWranglerD1Db, inlineParams, toSqlLiteral } = await import('../src/index.ts');
+
+  it('バインド変数をエスケープしたリテラルに置き換える', () => {
+    expect(toSqlLiteral("it's")).toBe("'it''s'");
+    expect(toSqlLiteral(null)).toBe('NULL');
+    expect(toSqlLiteral(1.5)).toBe('1.5');
+    expect(inlineParams("SELECT * FROM t WHERE a = ? AND b = '?' AND c = ?", ['x', 2])).toBe("SELECT * FROM t WHERE a = 'x' AND b = '?' AND c = 2");
+    expect(() => inlineParams('SELECT ?', [])).toThrow();
+    expect(() => inlineParams('SELECT 1', ['x'])).toThrow();
+  });
+
+  it('d1 execute --remote --json を呼び、results と changes を返す', async () => {
+    const calls: string[][] = [];
+    const run = async (args: string[]) => {
+      calls.push(args);
+      return 'warning text\n[{"results":[{"n":1}],"success":true,"meta":{"changes":2}}]';
+    };
+    const db = createWranglerD1Db(run);
+    expect(await db.all('SELECT ? AS n', [1])).toEqual([{ n: 1 }]);
+    expect(await db.run('UPDATE t SET a = 1')).toEqual({ changes: 2 });
+    expect(calls[0]).toEqual(['d1', 'execute', 'DB', '--remote', '--json', '--command', 'SELECT 1 AS n']);
+  });
+
+  it('失敗は D1Error', async () => {
+    const db = createWranglerD1Db(async () => '[{"results":[],"success":false}]');
+    await expect(db.all('SELECT 1')).rejects.toBeInstanceOf(D1Error);
+  });
+});

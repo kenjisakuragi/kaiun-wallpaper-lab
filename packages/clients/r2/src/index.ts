@@ -75,3 +75,43 @@ export function createMemoryStorage(publicBaseUrl = 'https://example.invalid'): 
     },
   };
 }
+
+/** wrangler CLI を実行する関数（args を渡し、標準出力を返す） */
+export type WranglerRunner = (args: string[]) => Promise<string>;
+
+/**
+ * 手元実行用：wrangler login の認証で R2 に置く（アクセスキー不要）。
+ * writeTemp は本文を一時ファイルに書いてパスを返す関数（runtime が用意）。
+ */
+export function createWranglerR2Storage(opts: {
+  run: WranglerRunner;
+  bucket: string;
+  publicBaseUrl: string;
+  writeTemp: (body: Uint8Array) => Promise<{ path: string; cleanup: () => void }>;
+  fetch?: typeof fetch;
+}): ObjectStorage {
+  const base = opts.publicBaseUrl.replace(/\/+$/, '');
+  const publicUrl = (key: string) => `${base}/${key.split('/').map(encodeURIComponent).join('/')}`;
+  const doFetch = opts.fetch ?? fetch;
+  return {
+    async put(key, body, contentType) {
+      const tmp = await opts.writeTemp(body);
+      try {
+        await opts.run([
+          'r2', 'object', 'put', `${opts.bucket}/${key}`,
+          '--file', tmp.path,
+          '--content-type', contentType,
+          '--cache-control', 'public, max-age=31536000, immutable',
+          '--remote',
+        ]);
+      } finally {
+        tmp.cleanup();
+      }
+    },
+    async exists(key) {
+      const res = await doFetch(publicUrl(key), { method: 'HEAD' });
+      return res.status === 200;
+    },
+    publicUrl,
+  };
+}

@@ -27,7 +27,12 @@
 - R2：`images/{random_prefix}/{kind}/{key}_v{version}.jpg`（プレビューは `_v{version}_preview.jpg`。作り直しで URL が変わるよう版を入れる）、`videos/{random_prefix}/{date}_{post_id}.mp4`。Threads・Instagram・LINE が取得できる公開 URL が必要。
 - D1：スキーマは `docs/05`。マイグレーションは `packages/db/migrations/`。
 - Workers（`apps/edge`）：LINE Webhook、Threads Webhook（使える場合）、`/go/{platform}` リダイレクト。シークレットは `wrangler secret`。
+- 環境（2026-10-04 作成、Cloudflare アカウントは別プロジェクトと共用。リソースは `kaiun-` 接頭辞で分ける）：
+  - D1：`kaiun-db`（APAC）。マイグレーション `0001_init.sql` 適用済み（`pnpm db:migrate:remote`）。
+  - R2：`kaiun-wallpaper-images`（APAC）。開発用の公開URL（r2.dev）を有効化。本番の独自ドメインは `docs/09` #30。
+  - 手元からの操作は `wrangler login`（OAuth）の認証を使う：`DB_MODE=wrangler`、`STORAGE_MODE=wrangler`（API トークン・アクセスキー不要）。CI（GitHub Actions）では API トークンと R2 のアクセスキーを使う（`DB_MODE=d1`、`STORAGE_MODE=s3`。キーの作成は人が行い GitHub Secrets に入れる）。
 - 確認記録：
+  - 2026-10-04（M3）`wrangler d1 execute <binding> --remote --json --command` はバインド変数を受け付けないため、手元用アダプタは値をエスケープしてリテラルに埋め込む（`packages/clients/d1` の `inlineParams`）。`wrangler r2 object put <bucket>/<key> --file --content-type --cache-control --remote`。
   - 2026-10-04（M3）R2 の S3 互換 API：エンドポイント `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`、region は `auto`、PutObject / HeadObject 対応。認証は R2 の API トークン画面で発行するアクセスキー（`R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`）。https://developers.cloudflare.com/r2/api/s3/api/
   - 2026-10-04（M3）R2 の公開：`r2.dev` サブドメインは速度制限があり開発用、本番は独自ドメインを推奨（`docs/09` #30）。https://developers.cloudflare.com/r2/buckets/public-buckets/
   - 2026-10-04（M3）D1 の REST API：`POST /client/v4/accounts/{account_id}/d1/database/{database_id}/query`、本文 `{ sql, params }`、`Authorization: Bearer <API トークン>`、応答は `result[].results` と `meta.changes`。バッチは `DB_MODE=d1` でこれを使う。https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/query/
