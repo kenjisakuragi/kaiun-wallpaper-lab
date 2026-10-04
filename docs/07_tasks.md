@@ -31,7 +31,8 @@
 - `batch:plan --from --days`：`docs/03` §6 に沿って `posts` に予定を登録（題材は birthday / kaiunbi / affirmation、比率は `docs/09` #15）。
 - 文面生成：Threads 本文（`prompts/threads_post.md`）と Instagram キャプション（`prompts/caption_instagram.md`）。NG ワード検査（`NG_WORD_MODE`）→ 類似度検査 → 不合格なら最大3回再生成 → だめなら `skipped`。
 - `batch:render-videos`：`docs/03` §3 の仕様で ffmpeg 合成（Instagram 用）。
-**完了条件**：7日分の計画・文面・動画が作れる。動画が 1080×1920・30fps・12〜15秒であることを ffprobe で検証。`NG_WORD_MODE=block` のとき NG ワードを含む文面が予定に入らず、`warn` のとき記録されたうえで入ることのテスト。Threads 本文が500文字以内であることのテスト。
+- 評価ループの記録（`docs/06` §6）：マイグレーション0002で `posts` に `prompt_version`・`hook_type`・`style_version`・`post_time`・`ng_hits` を追加し、計画・文面生成時に記録する。
+**完了条件**：7日分の計画・文面・動画が作れる。評価ループ用の列が記録されることのテスト。動画が 1080×1920・30fps・12〜15秒であることを ffprobe で検証。`NG_WORD_MODE=block` のとき NG ワードを含む文面が予定に入らず、`warn` のとき記録されたうえで入ることのテスト。Threads 本文が500文字以内であることのテスト。
 
 ## M5 Threads 投稿
 - `packages/clients/threads`：コンテナ作成（IMAGE）→ 30秒以上待機 → 公開、トークン更新、インサイト取得。
@@ -39,7 +40,7 @@
 **完了条件**：自分のアカウントに1本公開できる。公開済みに再実行しても二重投稿しない（状態遷移のテスト）。
 
 ## M6 Threads 誕生日リプ返信
-- 取得：Webhook（`apps/edge`）が使えるか公式で確認し、使えなければ `batch:threads-poll`（15分ごと）で自分の投稿への返信を取得。
+- 取得：Webhook（`apps/edge`）が使えるか公式で確認し、使えなければ Cloudflare Workers の Cron Triggers（15分ごと）で自分の投稿への返信を取得（`docs/09` #26）。
 - 対象判定（`docs/02` §5）→ 月日解釈 → 返信文生成（`prompts/threads_replies.md`）→ NG（`NG_WORD_MODE`）・類似度検査 → `THREADS_AUTO_REPLY_MODE` に従い承認キューか自動送信（日次上限）。
 - `batch:threads-replies`：承認キューの一覧表示、`--approve <id>`、`--approve-all`、`--reject <id>`。
 **完了条件**
@@ -54,7 +55,7 @@
 - `apps/edge`：
   - `/go/{platform}`：クリック記録（IP・Cookie を保存しない）→ LINE 友だち追加 URL へ 302。
   - LINE Webhook：署名検証、follow/unfollow/message、A/B 割り当て、月日解釈、画像返信（Reply API）、エラー案内（1日1回まで）、受信記録（本文は保存しない）、「今日のひと言」の返信（`docs/03` §5-1）。
-- `batch:weekly-push`：開運日のある週だけ送信。月間通数チェック。
+- `batch:weekly-push`：壁紙パックの案内など要所のプッシュだけ（開運日の案内は返信方式、`docs/03` §5-0）。月間通数チェック。
 - `batch:fetch-metrics`：Threads・Instagram の投稿別指標を `post_metrics` に保存。
 **完了条件**
 - Instagram に1本公開でき、再実行で二重投稿しない。
@@ -62,8 +63,8 @@
 - LINE：署名不正で 401。A 群には誕生日画像、B 群には共通画像。未承認画像は返さない。通数上限を超える場合は送信しない。「ひと言」には A/B 両群に同じ言葉を返し、`counted=0` で記録する。
 
 ## M8 週次レポート
-- `batch:weekly-report`（`docs/06` §4）。
-**完了条件**：テストデータで全項目が出力され、各群100人未満のとき「判断不能」と表示される。
+- `batch:weekly-report`（`docs/06` §4）と、題材別・変更点別の集計、来週の変更案（`docs/06` §6）。
+**完了条件**：テストデータで全項目が出力され、各群100人未満のとき「判断不能」と表示される。題材別・変更点別の集計で件数が少ないときも「判断不能」と表示される。
 
 ## 実装順の注意
 M2 の題材レビューと M3 の画像承認は人の作業が入る。待ち時間の間に M4 以降のコードとテストを進めてよいが、本番データでの実行は承認後に限る。M6 の自動返信は、最初の2週間は `approve` モードで運用する。

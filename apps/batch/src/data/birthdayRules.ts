@@ -84,13 +84,40 @@ export const DAY_PREFIXES = [
   '灯りの', '渚の', '森の', '雲間の', '波音の', '羽ばたく', '宵の',
 ] as const;
 
-/** モチーフ（実在の人物・建物・寺社・宗教のシンボル・キャラクターは使わない。docs/03 §1） */
-export const MOTIFS = [
-  '桜の花びら', '三日月', '満月', '星くず', '白い羽根', '四つ葉のクローバー', '水晶', 'しずく',
-  '貝殻', 'アンティークの鍵', 'リボン', '小さな花束', '蝶', '小鳥', '雪の結晶', '虹',
-  '紙飛行機', 'ガラスの小瓶', '真珠', 'たんぽぽの綿毛', 'ランタンの灯り', '流れ星', '花冠', '葉っぱ',
-  'しゃぼん玉', '金色の砂時計', '朝顔', 'ひまわり', 'すずらん', '帆船', '気球', 'オーロラ',
-] as const;
+/**
+ * 季節ごとのモチーフ（各16種）。実在の人物・建物・寺社・宗教のシンボル・キャラクターは使わない（docs/03 §1）。
+ * 季節：冬 12〜2月、春 3〜5月、夏 6〜8月、秋 9〜11月。星・羽根・水晶などは複数の季節で使う。
+ */
+export const SEASON_MOTIFS = {
+  winter: [
+    '雪の結晶', 'オーロラ', '星くず', '白い羽根', '水晶', 'リボン', 'ランタンの灯り', '満月',
+    '三日月', '真珠', '流れ星', 'アンティークの鍵', '金色の砂時計', '紙飛行機', 'ガラスの小瓶', '小鳥',
+  ],
+  spring: [
+    '桜の花びら', 'たんぽぽの綿毛', '蝶', '小鳥', '四つ葉のクローバー', 'すずらん', '小さな花束', '花冠',
+    'しゃぼん玉', '虹', 'リボン', '紙飛行機', '白い羽根', '星くず', 'ガラスの小瓶', '気球',
+  ],
+  summer: [
+    '朝顔', 'ひまわり', '貝殻', '帆船', 'しずく', '虹', '流れ星', 'ガラスの小瓶',
+    'しゃぼん玉', '星くず', '真珠', '気球', '紙飛行機', '白い羽根', '三日月', '蝶',
+  ],
+  autumn: [
+    '満月', '三日月', '紅葉した葉', 'ランタンの灯り', '金色の砂時計', 'アンティークの鍵', '気球', '真珠',
+    '星くず', '流れ星', '白い羽根', '水晶', 'リボン', '小鳥', '小さな花束', 'ガラスの小瓶',
+  ],
+} as const satisfies Record<string, readonly string[]>;
+
+export type Season = keyof typeof SEASON_MOTIFS;
+
+export function seasonOf(month: number): Season {
+  if (month === 12 || month <= 2) return 'winter';
+  if (month <= 5) return 'spring';
+  if (month <= 8) return 'summer';
+  return 'autumn';
+}
+
+/** 使うモチーフの一覧（重複なし） */
+export const MOTIFS: readonly string[] = [...new Set(Object.values(SEASON_MOTIFS).flat())];
 
 /** キーワード（2〜6文字の前向きな語。効果を断定する語は使わない。docs/08 §1） */
 export const KEYWORDS = [
@@ -121,6 +148,20 @@ export function dayIndex(month: number, day: number): number {
   return idx + day - 1;
 }
 
+/** その季節が始まってから何日目か（0 始まり。冬は 12/1 を起点に 1・2月へ続く） */
+function seasonDayIndex(month: number, day: number): number {
+  const startMonth = { winter: 12, spring: 3, summer: 6, autumn: 9 }[seasonOf(month)];
+  let idx = 0;
+  for (let m = startMonth; m !== month; m = (m % 12) + 1) idx += DAYS_IN_MONTH[m - 1] as number;
+  return idx + day - 1;
+}
+
+function motifFor(month: number, day: number): string {
+  const pool = SEASON_MOTIFS[seasonOf(month)];
+  // 7 は16と互いに素なので、季節の中では隣り合う日で同じモチーフが続かない
+  return pool[(seasonDayIndex(month, day) * 7) % pool.length] as string;
+}
+
 export function birthdayEntry(month: number, day: number): BirthdayEntry {
   const colors = MONTH_COLORS[month - 1];
   if (!colors) throw new Error(`invalid month: ${month}`);
@@ -136,8 +177,8 @@ export function birthdayEntry(month: number, day: number): BirthdayEntry {
     date: `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
     color_name: `${prefix}${word.name}`,
     color_hex: hslToHex(h, s, l),
-    // 7・11 は各リストの長さ（32）と互いに素なので、隣り合う日で同じものが続かない
-    motif: MOTIFS[(idx * 7) % MOTIFS.length] as string,
+    motif: motifFor(month, day),
+    // 11 はキーワード数（32）と互いに素なので、隣り合う日で同じものが続かない
     keyword: KEYWORDS[(idx * 11 + 3) % KEYWORDS.length] as string,
   };
 }
@@ -145,7 +186,16 @@ export function birthdayEntry(month: number, day: number): BirthdayEntry {
 export function generateBirthdays(): BirthdayEntry[] {
   const out: BirthdayEntry[] = [];
   for (let m = 1; m <= 12; m++) {
-    for (let d = 1; d <= (DAYS_IN_MONTH[m - 1] as number); d++) out.push(birthdayEntry(m, d));
+    for (let d = 1; d <= (DAYS_IN_MONTH[m - 1] as number); d++) {
+      const entry = birthdayEntry(m, d);
+      const prev = out.at(-1);
+      // 季節の変わり目で前日と同じモチーフになったら、その季節の次のモチーフにずらす
+      if (prev && prev.motif === entry.motif) {
+        const pool = SEASON_MOTIFS[seasonOf(m)];
+        entry.motif = pool[(pool.indexOf(entry.motif as never) + 1) % pool.length] as string;
+      }
+      out.push(entry);
+    }
   }
   return out;
 }
@@ -158,7 +208,8 @@ export const BIRTHDAYS_HEADER = `# 誕生日別の題材（366日、2/29 を含�
 # - 守護カラーとモチーフは、このプロジェクト独自の設定。伝統・学説・宗教的権威を名乗らない。
 # - 色：月ごとに基調色を3つ決め（月をまたいで重複しない）、日ごとに「前置き（31種）＋基調色」で色名を作る。
 #   そのため366日の色名はすべて異なる。color_hex は基調色の HSL を日ごとに少し揺らした値。
-# - モチーフ：32種を、1/1 からの通し番号 × 7 で順に割り当てる（隣り合う日で同じものが続かない）。
+# - モチーフ：季節（冬12〜2月・春3〜5月・夏6〜8月・秋9〜11月）ごとに16種を用意し、
+#   季節の始まりからの日数 × 7 で順に割り当てる（隣り合う日で同じものが続かない）。
 #   実在の人物・建物・寺社・宗教のシンボル・キャラクターは使わない。
 # - keyword：2〜6文字の前向きな語32種を、通し番号 × 11 で割り当てる。効果を断定する語は使わない。
 # - 人がレビューし、問題なければ data/birthdays.reviewed を置く（置くまで本番の画像生成は動かない）。

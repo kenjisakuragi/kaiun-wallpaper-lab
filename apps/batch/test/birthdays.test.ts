@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
-import { generateBirthdays, hslToHex, KEYWORDS, MONTH_COLORS, MOTIFS } from '../src/data/birthdayRules.ts';
+import { generateBirthdays, hslToHex, KEYWORDS, MONTH_COLORS, MOTIFS, SEASON_MOTIFS, seasonOf } from '../src/data/birthdayRules.ts';
 import { allMonthDays } from '../src/data/validate.ts';
 import { renderBirthdaysYaml } from '../src/data/writeBirthdays.ts';
 import { dataPaths } from '../src/paths.ts';
@@ -37,6 +37,15 @@ describe('誕生日データの生成規則（docs/03 §1-1）', () => {
       expect(entries[i]?.motif).not.toBe(entries[i - 1]?.motif);
       expect(entries[i]?.keyword).not.toBe(entries[i - 1]?.keyword);
     }
+  });
+
+  it('モチーフはその季節のものだけ', () => {
+    for (const e of entries) {
+      const month = Number(e.date.slice(0, 2));
+      expect(SEASON_MOTIFS[seasonOf(month)] as readonly string[], e.date).toContain(e.motif);
+    }
+    expect(entries.find((e) => e.date === '01-01')?.motif).not.toBe('桜の花びら');
+    expect(entries.filter((e) => e.motif === 'ひまわり').every((e) => ['06', '07', '08'].includes(e.date.slice(0, 2)))).toBe(true);
   });
 
   it('すべてのモチーフ・キーワードが使われる', () => {
