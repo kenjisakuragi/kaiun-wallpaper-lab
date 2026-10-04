@@ -1,0 +1,12 @@
+{
+  "name": "@kaiun/batch",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@kaiun/core": "workspace:*",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
+  }
+}
