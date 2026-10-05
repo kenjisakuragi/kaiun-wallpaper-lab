@@ -15,7 +15,8 @@
     "batch:generate-birthdays": "tsx apps/batch/src/cli/generate-birthdays.ts",
     "batch:generate-images": "tsx apps/batch/src/cli/generate-images.ts",
     "batch:apply-approvals": "tsx apps/batch/src/cli/apply-approvals.ts",
-    "db:migrate:remote": "pnpm --filter @kaiun/db migrate:remote"
+    "db:migrate:remote": "pnpm --filter @kaiun/db migrate:remote",
+    "profit:audit": "tsx apps/batch/src/cli/profit-audit.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

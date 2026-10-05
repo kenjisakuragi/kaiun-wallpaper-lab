@@ -1,0 +1,20 @@
+# 利益点検（pnpm profit:audit）の入力の書式例。実際の値は data/private/profit-assumptions.yaml に置く（Git 管理外）。
+# status：measured（測定済み。source に期間とデータ）/ assumed（仮定。source に理由）/ unknown（未確認。value は null）
+# 金額は円、率は 0〜1、1か月あたり。
+- scenario: 例（数字は説明用。実績ではない）
+  inputs:
+    linkClicks:            { value: 300,   status: assumed,  source: "例：月300クリック" }
+    lineAddRate:           { value: 0.3,   status: assumed,  source: "例" }
+    chatClickRate:         { value: 0.2,   status: assumed,  source: "例" }
+    signupRate:            { value: 0.4,   status: assumed,  source: "例" }
+    payerRate:             { value: 0.1,   status: assumed,  source: "例" }
+    revenuePerPayer:       { value: 2000,  status: assumed,  source: "例" }
+    refundRate:            { value: 0.02,  status: assumed,  source: "例" }
+    paymentFeeRate:        { value: 0.036, status: assumed,  source: "例" }
+    aiCostPerMessage:      { value: 1.5,   status: assumed,  source: "例" }
+    messagesPerYen:        { value: 0.05,  status: measured, source: "仕様：1pt=1円・1通20pt（AI チャットの仕様書）" }
+    freeMessagesPerSignup: { value: 15,    status: assumed,  source: "例：お試し3通＋登録特典500pt（25通分）の一部" }
+    adSpend:               { value: 0,     status: measured, source: "広告なし" }
+    fixedCost:             { value: 0,     status: assumed,  source: "例" }
+    ownerShare:            { value: null,  status: unknown,  source: "例：配分が未確認" }
+    humanHours:            { value: 6,     status: assumed,  source: "例" }
