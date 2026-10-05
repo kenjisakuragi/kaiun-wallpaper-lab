@@ -8,7 +8,7 @@ import type { ObjectStorage } from '@kaiun/client-r2';
 import { newId, nowJstIso } from '@kaiun/core';
 import type { ImageJob } from './prompts.ts';
 import { processImage } from './process.ts';
-import { type ImageRow, insertImage, latestImage, totalCostUsd } from './repo.ts';
+import { type ImageRow, insertImage, latestImagesByKind, totalCostUsd } from './repo.ts';
 
 export type GeneratedImage = { png: Uint8Array; model: string; quality: string; costUsd: number };
 
@@ -40,6 +40,8 @@ export type GenerateDeps = {
   now?: () => Date;
   /** CLAUDE.md ルール8：最大2回 */
   maxRetries?: number;
+  /** 連続でこの枚数が失敗したら、残りに手を付けずに止める（生成環境そのものの不調で全件を失敗にしないため） */
+  maxConsecutiveFailures?: number;
 };
 
 export type PlannedJob = ImageJob & { version: number };
@@ -60,8 +62,10 @@ export class BudgetExceededError extends Error {
 export async function planImages(deps: GenerateDeps, jobs: ImageJob[], opts: { force?: boolean; limit?: number } = {}): Promise<Plan> {
   const toGenerate: PlannedJob[] = [];
   const skipped: Plan['skipped'] = [];
+  const latestByKind = new Map<string, Map<string, ImageRow>>();
+  for (const kind of new Set(jobs.map((j) => j.kind))) latestByKind.set(kind, await latestImagesByKind(deps.db, kind));
   for (const job of jobs) {
-    const latest = await latestImage(deps.db, job.kind, job.key);
+    const latest = latestByKind.get(job.kind)?.get(job.key);
     if (latest && latest.status !== 'rejected' && !opts.force) {
       skipped.push({ job, reason: `生成済み（v${latest.version}・${latest.status}）` });
       continue;
@@ -94,7 +98,12 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries: number, onRetry: (
   }
 }
 
-export type RunResult = { generated: ImageRow[]; failed: { kind: string; key: string; error: string }[] };
+export type RunResult = {
+  generated: ImageRow[];
+  failed: { kind: string; key: string; error: string }[];
+  /** 連続失敗で途中停止したか（停止後の残りは失敗にも生成にも数えない） */
+  aborted: boolean;
+};
 
 export async function runPlan(deps: GenerateDeps, plan: Plan): Promise<RunResult> {
   const g = deps.generator;
@@ -104,8 +113,10 @@ export async function runPlan(deps: GenerateDeps, plan: Plan): Promise<RunResult
   }
   const now = deps.now ?? (() => new Date());
   const maxRetries = deps.maxRetries ?? 2;
-  const result: RunResult = { generated: [], failed: [] };
+  const result: RunResult = { generated: [], failed: [], aborted: false };
   const queue = [...plan.toGenerate];
+  const maxConsecutive = deps.maxConsecutiveFailures ?? 3;
+  let consecutive = 0;
 
   async function one(job: PlannedJob) {
     const name = `${job.kind}_${job.key}_v${job.version}`;
@@ -139,12 +150,18 @@ export async function runPlan(deps: GenerateDeps, plan: Plan): Promise<RunResult
       };
       await insertImage(deps.db, row);
       result.generated.push(row);
+      consecutive = 0;
       deps.log.info('image.generated', { kind: job.kind, key: job.key, version: job.version, generator: g.name });
     } catch (e) {
       // 失敗はスキップして記録し、次へ進む（CLAUDE.md ルール8）
       const error = e instanceof Error ? e.message : String(e);
       result.failed.push({ kind: job.kind, key: job.key, error });
       deps.log.error('image.failed', { kind: job.kind, key: job.key, error });
+      if (++consecutive >= maxConsecutive && !result.aborted) {
+        result.aborted = true;
+        queue.length = 0;
+        deps.log.error('image.aborted', { reason: `${maxConsecutive} consecutive failures`, remainingSkipped: true });
+      }
     }
   }
 

@@ -23,6 +23,14 @@ export async function latestImage(db: SqlDb, kind: ImageKind, key: string): Prom
   return rows[0];
 }
 
+/** kind の全行を1回で読み、key ごとの最新版を返す（1件ずつ問い合わせると wrangler 経由で遅いため） */
+export async function latestImagesByKind(db: SqlDb, kind: ImageKind): Promise<Map<string, ImageRow>> {
+  const rows = await db.all<ImageRow>('SELECT * FROM images WHERE kind = ? ORDER BY key, version', [kind]);
+  const map = new Map<string, ImageRow>();
+  for (const r of rows) map.set(r.key, r);
+  return map;
+}
+
 export async function insertImage(db: SqlDb, row: ImageRow): Promise<void> {
   await db.run(
     `INSERT INTO images (id, kind, key, version, prompt_hash, model, quality, r2_url_full, r2_url_preview, cost_usd, status, created_at)

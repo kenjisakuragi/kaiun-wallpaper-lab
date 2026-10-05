@@ -83,7 +83,7 @@ async function main(): Promise<number> {
   if (kind.data === 'birthday') assertBirthdaysReviewed();
   const result = await runPlan(deps, plan);
   const review = await writeReviewPage(db, join(OUT_DIR, 'review'), join(OUT_DIR, 'images'), new Map(jobs.map((j) => [`${j.kind}:${j.key}`, j.label])));
-  out(`生成 ${result.generated.length} 枚、失敗 ${result.failed.length} 枚`);
+  out(`生成 ${result.generated.length} 枚、失敗 ${result.failed.length} 枚${result.aborted ? '（連続失敗のため途中で停止。再実行で続きから）' : ''}`);
   for (const f of result.failed) out(`  失敗：${f.kind} ${f.key}：${f.error}`);
   out(`承認待ち ${review.count} 枚：${review.htmlPath}`);
   return result.failed.length > 0 ? 1 : 0;

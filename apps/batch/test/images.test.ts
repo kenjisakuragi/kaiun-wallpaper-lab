@@ -167,6 +167,35 @@ describe('生成（冪等・リトライ・予算）', () => {
     expect(calls.filter((c) => c.startsWith('affirmation_a002'))).toHaveLength(3);
   });
 
+  it('連続3枚失敗したら残りに手を付けずに止める（生成環境の不調で全件失敗にしない）', async () => {
+    const failTimes = new Map([
+      ['affirmation_a001', 9],
+      ['affirmation_a002', 9],
+      ['affirmation_a003', 9],
+    ]);
+    const { g, calls } = fakeGenerator({ failTimes });
+    const d = deps({ generator: g, maxRetries: 0 });
+    const all = buildJobs('affirmation');
+    const r = await runPlan(d, await planImages(d, all));
+    expect(r.aborted).toBe(true);
+    expect(r.failed.map((f) => f.key)).toEqual(['a001', 'a002', 'a003']);
+    expect(r.generated).toEqual([]);
+    expect(calls).toHaveLength(3);
+    // 再実行すると失敗分も含めて続きから生成できる（失敗は記録に残らない）
+    const again = await planImages(deps(), all);
+    expect(again.toGenerate).toHaveLength(12);
+  });
+
+  it('生成前の確認は kind ごとに1回の問い合わせでまとめて行う', async () => {
+    const d = deps();
+    await runPlan(d, await planImages(d, jobs()));
+    let queries = 0;
+    const counting = { ...db, all: async (...a: Parameters<typeof db.all>) => { queries++; return db.all(...a); } } as typeof db;
+    const plan = await planImages(deps({ db: counting }), buildJobs('affirmation'));
+    expect(queries).toBe(1);
+    expect(plan.skipped).toHaveLength(3);
+  });
+
   it('費用のかかる経路は、予算を超えるなら開始前に止める', async () => {
     const d = deps({ generator: fakeGenerator({ cost: 0.05 }).g, budgetUsd: 0.1 });
     await expect(runPlan(d, await planImages(d, jobs()))).rejects.toBeInstanceOf(BudgetExceededError);
